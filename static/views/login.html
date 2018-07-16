@@ -23,6 +23,7 @@
         }
       .codeimg{
         height:34px;
+        cursor: pointer;
       }
       </style>
 </head>
@@ -34,11 +35,11 @@
           <div class="panel panel-primary">
               <div class="panel-heading">登录学生管理系统</div>
               <div class="panel-body">
-                <form class="form-horizontal">
+                <form class="form-horizontal" action="/login" method="POST">
                   <div class="form-group">
                     <label for="userName" class="col-sm-2 control-label">用户名</label>
                     <div class="col-sm-10">
-                      <input type="email" name="userName" class="form-control" id="inputEmail3" placeholder="请输入用户名">
+                      <input type="text" name="userName" class="form-control" id="inputEmail3" placeholder="请输入用户名">
                     </div>
                   </div>
                   <div class="form-group">
@@ -50,17 +51,17 @@
                   <div class="form-group">
                     <label for="code" class="col-sm-2 control-label">验证码</label>
                     <div class="col-sm-6">
-                      <input type="password" name="code" class="form-control" id="inputPassword3" placeholder="请输入验证码">
+                      <input type="password" name="code" class="form-control" id="inputcode3" placeholder="请输入验证码">
                     </div>
                     <div class="col-sm-4">
-                      <img src="../code.PNG" class="codeimg" alt="">
+                      <img src="/login/captcha.png" class="codeimg" alt="">
                     </div>
                   </div>
                 
                   <div class="form-group">
                     <div class="col-sm-offset-2 col-sm-10">
                       <button type="submit" class="btn btn-default">登录</button>
-                      <button type="submit" class="btn btn-danger">注册</button>
+                      <a href="/register" class="btn btn-danger">注册</a>
                     </div>
                     
                 </form>
@@ -76,3 +77,27 @@
 <script src="../lib/js/jquery-1.12.4.js"></script>
 <!-- Include all compiled plugins (below), or include individual files as needed -->
 <script src="../lib/js/bootstrap.min.js"></script>
+<script>
+  $(function () { 
+
+    //本质上还是一个浏览器缓存的问题,
+    $(".codeimg").click(function(){
+      // console.log("我被点击啦");
+      let time = new Date().getTime();
+      //console.log(time);
+      
+      let src ="";
+      //console.log($(this).attr("src").indexOf("?"));
+      
+      if($(this).attr("src").indexOf("?")==-1){
+        
+        src = "/login/captcha.png"+`?${time}`
+
+      }else{
+        src = "/login/captcha.png";
+      }
+      
+      $(this).attr("src",src)
+    })
+   })
+</script>
