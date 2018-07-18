@@ -10,18 +10,22 @@ let path = require("path");
 let session = require('express-session')
 //引入bodyParser模块
 let bodyParser = require('body-parser')
-//引入mongoDB模块
-let MongoClient = require('mongodb').MongoClient;
+//引入工具
+let myT = require(path.join(__dirname, "tools/myT.js"))
+//引入首页的模块
+let indexRouter = require("./router/indexRoute.js")
+
+
+
 
 //模块--------------------------------
-
 //生成app
 let app = express();
-// Connection URL
-const url = 'mongodb://localhost:27017';
 
-// Database Name
-const dbName = 'test';
+//把art-template设置为模板引擎
+app.engine('html', require('express-art-template'));
+//时候设置art文件的路劲
+app.set('views', '/static/views');
 
 //中间件-----------------------------------
 
@@ -31,11 +35,12 @@ app.use(express.static("static"));
 app.use(session({
     secret: 'keyboard cat',
 }))
-//解析传递过来的表单数据
+//解析传递过来的post数据
 app.use(bodyParser.urlencoded({
     extended: false
 }))
-
+//首页的路由中间件
+app.use("/index",indexRouter)
 
 //中间件-----------------------------------
 
@@ -47,25 +52,34 @@ app.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "static/views/login.html"));
 })
 //路由2
-// 使用post 提交数据过来 验证用户登陆
+// 使用post 提交数据过来 验证用户登陆,验证成功的话就创建session,并跳转到/index,
+//浏览器跳转至后马上就会发起请求,执行中间件
 app.post("/login", (req, res) => {
     //console.log(req);
-
     let userName = req.body.userName;
     let userPass = req.body.userPass;
     let code = req.body.code;
     if (code == req.session.captcha) {
-        //如果成功的话
-        req.session.userInfo = {
+        //接着验证用户名和密码
+        myT.find("user", {
             userName,
             userPass
-        }
-        //去首页
-        res.redirect("/index");
+        }, (err, docs) => {
+            if (docs.length == 1) {
+                //如果成功的话
+                req.session.userInfo = {
+                    userName,
+                }
+                //去首页
+                res.redirect("/index");
+            }else{
+                myT.mess(res,"验证失败,请重试","/login")
+            }
+
+        })
 
     } else {
-        res.setHeader("content-type", "text/html");
-        res.send('<script>alert("验证失败,请重试");window.location.href="/login"</script>')
+        myT.mess(res,"验证失败,请重试","/login")
     }
 
 })
@@ -89,8 +103,7 @@ app.get("/index", (req, res) => {
     if (req.session.userInfo) {
         res.sendFile(path.join(__dirname, "static/views/index.html"))
     } else {
-        res.setHeader("content-type", "text/html");
-        res.send('<script>alert("请登录");window.location.href="/login"</script>')
+        myT.mess(res, "请登录", "/login")
     }
 })
 
@@ -114,40 +127,24 @@ app.post("/register", (req, res) => {
     let userName = req.body.userName;
     let userPass = req.body.userPass;
 
-    MongoClient.connect(url, function (err, client) {
-
-        let db = client.db(dbName);
-        let collection = db.collection('user');
-        collection.find({
-            userName: userName
-        }).toArray((err, result) => {
-            console.log(result);
-            
-            if (result.length == 0) {
-                //说明没有重复的
-                collection.insertOne({
-                    userName,
-                    userPass
-                }, (err, results) => {
-                    //console.log("添加成功");
-                    res.setHeader("content-type", "text/html");
-                    res.send('<script>alert("添加成功");window.location.href="/login"</script>')
-                })
-            } else {
-                //有重复的话就
-                res.setHeader("content-type", "text/html");
-                res.send('<script>alert("用户名已经存在,请再次输入");window.location.href="/register"</script>')
-                 // 关闭数据库连接即可
-                 client.close();
-
-            }
-
-        })
+    myT.find("user", {
+        userName
+    }, (err, docs) => {
+        if (docs.length == 0) {
+            //没有
+            myT.insert("user", {
+                userName,
+                userPass
+            }, (err, results) => {
 
 
-        //client.close();
-    });
-
+                if (!err) myT.mess(res, "欢迎入坑", "/login")
+            })
+        } else {
+            //有
+            myT.mess(res, "已被注册,换一个", "/register")
+        }
+    })
 
 
 
